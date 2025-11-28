@@ -37,9 +37,14 @@ COPY --from=builder /app/tsconfig.json ./tsconfig.json
 COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/sources ./sources
+COPY --from=builder /app/prisma ./prisma
+
+# Copy entrypoint script
+COPY docker-entrypoint.sh /app/docker-entrypoint.sh
+RUN chmod +x /app/docker-entrypoint.sh
 
 # Expose the port the app will run on
-EXPOSE 3000
+EXPOSE 3005
 
-# Command to run the application
-CMD ["yarn", "start"] 
+# Use entrypoint script to run migrations before starting
+ENTRYPOINT ["/app/docker-entrypoint.sh"] 

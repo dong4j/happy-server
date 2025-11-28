@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+    happy-server:
+        build:
+            context: .
+            dockerfile: Dockerfile
+        image: happy-server:latest
+        container_name: happy-server
+        ports:
+            - "3456:3005"
+        environment:
+            NODE_ENV: production
+            PORT: 3005
+            DATABASE_URL: "postgresql://username:password@host.docker.internal:5432/happy-server"
+            REDIS_URL: "redis://:password@host.docker.internal:6379/4"
+            SEED: "d128c13962914c9492408085f9989cf8"
+            HANDY_MASTER_SECRET: "d128c13962914c9492408085f9989cf8"
+            S3_HOST: "host.docker.internal"
+            S3_PORT: "9000"
+            S3_USE_SSL: "false"
+            S3_ACCESS_KEY: "minioadmin"
+            S3_SECRET_KEY: "minioadmin123"
+            S3_BUCKET: "happy-files"
+            S3_PUBLIC_URL: "http://localhost:9000/happy-files"
+        restart: unless-stopped
+        healthcheck:
+            test: ["CMD", "node", "-e", "require('http').get('http://localhost:3005/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+            interval: 30s
+            timeout: 10s
+            retries: 3
+            start_period: 40s
+
