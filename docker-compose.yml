@@ -1,74 +1,6 @@
 version: '3.8'
 
 services:
-    postgres:
-        image: postgres:15
-        container_name: happy-postgres
-        environment:
-            - POSTGRES_DB=${POSTGRES_DB:-happy-server}
-            - POSTGRES_USER=${POSTGRES_USER:-postgres}
-            - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
-        volumes:
-            - postgres_data:/var/lib/postgresql/data
-        ports:
-            - "5432:5432"
-        healthcheck:
-            test: ["CMD-SHELL", "pg_isready -U postgres"]
-            interval: 10s
-            timeout: 5s
-            retries: 5
-        restart: unless-stopped
-
-    redis:
-        image: redis:7-alpine
-        container_name: happy-redis
-        ports:
-            - "6379:6379"
-        volumes:
-            - redis_data:/data
-        healthcheck:
-            test: ["CMD", "redis-cli", "ping"]
-            interval: 10s
-            timeout: 5s
-            retries: 5
-        restart: unless-stopped
-
-    minio:
-        image: minio/minio:latest
-        container_name: happy-minio
-        command: server /data --console-address ":9001"
-        environment:
-            - MINIO_ROOT_USER=${MINIO_ROOT_USER:-minioadmin}
-            - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD:-minioadmin123}
-        ports:
-            - "9000:9000"
-            - "9001:9001"
-        volumes:
-            - minio_data:/data
-        healthcheck:
-            test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
-            interval: 30s
-            timeout: 20s
-            retries: 3
-        restart: unless-stopped
-
-    minio-init:
-        image: minio/mc:latest
-        container_name: happy-minio-init
-        depends_on:
-            minio:
-                condition: service_healthy
-        entrypoint: /bin/sh
-        command:
-            - -c
-            - |
-                mc alias set local http://minio:9000 ${MINIO_ROOT_USER:-minioadmin} ${MINIO_ROOT_PASSWORD:-minioadmin123} &&
-                mc mb -p local/${S3_BUCKET:-happy-files} || true &&
-                mc anonymous set download local/${S3_BUCKET:-happy-files}
-        restart: "no"
-        profiles:
-            - init
-
     happy-server:
         build:
             context: .
@@ -76,29 +8,23 @@ services:
         image: happy-server:latest
         container_name: happy-server
         ports:
-            - "3005:${PORT:-3005}"
+            - "${HAPPY_SERVER_PORT:-3456}:${PORT:-3005}"
         env_file:
-            - .env.dev
+            - .env
         environment:
             - NODE_ENV=${NODE_ENV:-production}
             - PORT=${PORT:-3005}
-            - DATABASE_URL=${DATABASE_URL}
-            - REDIS_URL=${REDIS_URL}
-            - S3_HOST=${S3_HOST}
+            - DATABASE_URL=${DATABASE_URL_EXTERNAL:-${DATABASE_URL}}
+            - REDIS_URL=${REDIS_URL_EXTERNAL:-${REDIS_URL}}
+            - SEED=${SEED:-${HANDY_MASTER_SECRET}}
+            - HANDY_MASTER_SECRET=${HANDY_MASTER_SECRET}
+            - S3_HOST=${S3_HOST_EXTERNAL:-${S3_HOST}}
             - S3_PORT=${S3_PORT:-9000}
             - S3_USE_SSL=${S3_USE_SSL:-false}
             - S3_ACCESS_KEY=${S3_ACCESS_KEY}
             - S3_SECRET_KEY=${S3_SECRET_KEY}
             - S3_BUCKET=${S3_BUCKET:-happy-files}
             - S3_PUBLIC_URL=${S3_PUBLIC_URL}
-            - HANDY_MASTER_SECRET=${HANDY_MASTER_SECRET}
-        depends_on:
-            postgres:
-                condition: service_healthy
-            redis:
-                condition: service_healthy
-            minio:
-                condition: service_healthy
         restart: unless-stopped
         healthcheck:
             test: ["CMD", "node", "-e", "require('http').get('http://localhost:${PORT:-3005}/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
@@ -106,8 +32,3 @@ services:
             timeout: 10s
             retries: 3
             start_period: 40s
-
-volumes:
-    postgres_data:
-    redis_data:
-    minio_data:

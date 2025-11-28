@@ -2,16 +2,16 @@
 
 ## 环境配置
 
-### 创建 .env.dev 文件
+### 创建 .env 文件
 
-docker-compose 文件使用 `.env.dev` 来管理环境变量。首次部署前需要创建此文件：
+docker-compose 文件使用 `.env` 来管理环境变量。首次部署前需要创建此文件：
 
 ```bash
 # 复制模板文件
-cp .env.dev.example .env.dev
+cp .env.example .env
 
 # 编辑配置文件
-nano .env.dev  # 或使用你喜欢的编辑器
+nano .env  # 或使用你喜欢的编辑器
 ```
 
 **重要**：必须修改以下配置：
@@ -67,7 +67,7 @@ Dockerfile 使用 `build` 方式从源代码构建，不依赖预构建镜像。
 
 ```bash
 # 启动所有服务
-docker-compose up -d
+docker-compose -f docker-compose-all.yml up -d
 
 # 初始化 MinIO 存储桶（首次运行）
 docker-compose --profile init up minio-init
@@ -76,7 +76,7 @@ docker-compose --profile init up minio-init
 docker-compose logs -f happy-server
 ```
 
-### 2. 使用简化的 docker-compose.simple.yml（连接外部服务）
+### 2. 使用简化的 docker-compose.yml（连接外部服务）
 
 ```bash
 # 确保外部服务已启动：
@@ -84,19 +84,19 @@ docker-compose logs -f happy-server
 # - Redis (host.docker.internal:6379)
 # - MinIO (host.docker.internal:9000)
 
-# 修改 docker-compose.simple.yml 中的环境变量
+# 修改 docker-compose.yml 中的环境变量
 # 然后启动
-docker-compose -f docker-compose.simple.yml up -d
+docker-compose up -d
 ```
 
 ### 3. 独立部署 MinIO
 
 ```bash
 # 启动 MinIO
-docker-compose -f docker-compose-minio.yml up -d
+docker-compose up -d
 
 # 初始化存储桶（首次运行）
-docker-compose -f docker-compose-minio.yml --profile init up minio-init
+docker-compose --profile init up minio-init
 ```
 
 ## 环境变量说明
