@@ -5,9 +5,9 @@ services:
         image: postgres:15
         container_name: happy-postgres
         environment:
-            - POSTGRES_DB=happy-server
-            - POSTGRES_USER=postgres
-            - POSTGRES_PASSWORD=postgres
+            - POSTGRES_DB=${POSTGRES_DB:-happy-server}
+            - POSTGRES_USER=${POSTGRES_USER:-postgres}
+            - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
         volumes:
             - postgres_data:/var/lib/postgresql/data
         ports:
@@ -38,8 +38,8 @@ services:
         container_name: happy-minio
         command: server /data --console-address ":9001"
         environment:
-            - MINIO_ROOT_USER=minioadmin
-            - MINIO_ROOT_PASSWORD=minioadmin123
+            - MINIO_ROOT_USER=${MINIO_ROOT_USER:-minioadmin}
+            - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD:-minioadmin123}
         ports:
             - "9000:9000"
             - "9001:9001"
@@ -62,9 +62,9 @@ services:
         command:
             - -c
             - |
-                mc alias set local http://minio:9000 minioadmin minioadmin123 &&
-                mc mb -p local/happy-files || true &&
-                mc anonymous set download local/happy-files
+                mc alias set local http://minio:9000 ${MINIO_ROOT_USER:-minioadmin} ${MINIO_ROOT_PASSWORD:-minioadmin123} &&
+                mc mb -p local/${S3_BUCKET:-happy-files} || true &&
+                mc anonymous set download local/${S3_BUCKET:-happy-files}
         restart: "no"
         profiles:
             - init
@@ -76,20 +76,22 @@ services:
         image: happy-server:latest
         container_name: happy-server
         ports:
-            - "3005:3005"
+            - "3005:${PORT:-3005}"
+        env_file:
+            - .env.dev
         environment:
-            - NODE_ENV=production
-            - PORT=3005
-            - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/happy-server
-            - REDIS_URL=redis://redis:6379
-            - S3_HOST=minio
-            - S3_PORT=9000
-            - S3_USE_SSL=false
-            - S3_ACCESS_KEY=minioadmin
-            - S3_SECRET_KEY=minioadmin123
-            - S3_BUCKET=happy-files
-            - S3_PUBLIC_URL=http://localhost:9000/happy-files
-            - HANDY_MASTER_SECRET=change-this-to-a-secure-random-string
+            - NODE_ENV=${NODE_ENV:-production}
+            - PORT=${PORT:-3005}
+            - DATABASE_URL=${DATABASE_URL}
+            - REDIS_URL=${REDIS_URL}
+            - S3_HOST=${S3_HOST}
+            - S3_PORT=${S3_PORT:-9000}
+            - S3_USE_SSL=${S3_USE_SSL:-false}
+            - S3_ACCESS_KEY=${S3_ACCESS_KEY}
+            - S3_SECRET_KEY=${S3_SECRET_KEY}
+            - S3_BUCKET=${S3_BUCKET:-happy-files}
+            - S3_PUBLIC_URL=${S3_PUBLIC_URL}
+            - HANDY_MASTER_SECRET=${HANDY_MASTER_SECRET}
         depends_on:
             postgres:
                 condition: service_healthy
@@ -99,7 +101,7 @@ services:
                 condition: service_healthy
         restart: unless-stopped
         healthcheck:
-            test: ["CMD", "node", "-e", "require('http').get('http://localhost:3005/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+            test: ["CMD", "node", "-e", "require('http').get('http://localhost:${PORT:-3005}/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
             interval: 30s
             timeout: 10s
             retries: 3

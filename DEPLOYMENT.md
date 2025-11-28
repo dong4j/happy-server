@@ -1,5 +1,34 @@
 # Happy Server 部署说明
 
+## 环境配置
+
+### 创建 .env.dev 文件
+
+docker-compose 文件使用 `.env.dev` 来管理环境变量。首次部署前需要创建此文件：
+
+```bash
+# 复制模板文件
+cp .env.dev.example .env.dev
+
+# 编辑配置文件
+nano .env.dev  # 或使用你喜欢的编辑器
+```
+
+**重要**：必须修改以下配置：
+- `HANDY_MASTER_SECRET`: 使用 `openssl rand -hex 32` 生成安全的随机字符串
+- `SEED`: 同上
+- `POSTGRES_PASSWORD`: 设置强密码
+- `MINIO_ROOT_PASSWORD`: 设置强密码
+- `S3_PUBLIC_URL`: 根据实际部署环境调整
+
+### 使用外部服务（docker-compose.simple.yml）
+
+如果使用 `docker-compose.simple.yml` 连接外部服务，需要在 `.env.dev` 中配置：
+- `DATABASE_URL_EXTERNAL`: 外部 PostgreSQL 连接字符串
+- `REDIS_URL_EXTERNAL`: 外部 Redis 连接字符串
+- `S3_HOST_EXTERNAL`: 外部 MinIO 主机地址
+- `HAPPY_SERVER_PORT`: 外部访问端口（默认 3456）
+
 ## 已解决的问题
 
 ### 1. ✅ Prisma 迁移自动执行
